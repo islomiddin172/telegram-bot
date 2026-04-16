@@ -1,58 +1,52 @@
 import os
-import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
+import logging
+from aiogram import Bot, Dispatcher, executor, types
 import yt_dlp
 
-TOKEN = os.getenv("TOKEN")
+API_TOKEN = os.getenv("TOKEN")
 
-if not TOKEN:
-    raise ValueError("TOKEN topilmadi!")
+logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
-@dp.message(CommandStart())
+
+@dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
-    await message.answer(
+    await message.reply(
         "👋 Salom!\n\n"
-        "📥 TikTok yoki Instagram link yuboring\n"
-        "🎬 Men video yuklab beraman"
+        "Menga TikTok yoki Instagram link yuboring 📎\n\n"
+        "Men sizga videoni yuklab beraman 🎬"
     )
 
-@dp.message()
+
+@dp.message_handler()
 async def download_video(message: types.Message):
     url = message.text
 
     if "tiktok.com" not in url and "instagram.com" not in url:
-        await message.answer("❌ Faqat TikTok yoki Instagram link yuboring")
+        await message.reply("❌ Faqat TikTok yoki Instagram link yuboring")
         return
 
-    await message.answer("⏳ Yuklanmoqda...")
+    await message.reply("⏳ Video yuklanmoqda...")
+
+    ydl_opts = {
+        'outtmpl': 'video.%(ext)s',
+        'format': 'mp4'
+    }
 
     try:
-        ydl_opts = {
-            'format': 'mp4',
-            'outtmpl': 'video.mp4'
-        }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        video = types.FSInputFile("video.mp4")
-
         await message.answer_video(
-            video,
-            caption="📢 Mana video!\n👉 Bot: https://t.me/Reflexmbot"
+            open("video.mp4", "rb"),
+            caption="📥 Mana videongiz!\n\n👉 Do‘stlaringiz bilan ulashing!"
         )
 
     except Exception as e:
-        print("ERROR:", e)
-        await message.answer("❌ Xatolik yuz berdi")
+        await message.reply("❌ Xatolik yuz berdi")
 
-async def main():
-    print("BOT ISHGA TUSHDI")
-    await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
