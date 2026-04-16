@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher, types
 import yt_dlp
 import asyncio
 
-TOKEN = os.getenv("8685529422:AAFRWzszwNC7gVMX92el_Xe-F4VGEsRhq7s")  # Railway uchun
+TOKEN = os.getenv("TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
