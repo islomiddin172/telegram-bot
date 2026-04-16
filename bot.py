@@ -1,23 +1,25 @@
 import os
-from aiogram import Bot, Dispatcher, types
-import yt_dlp
 import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+import yt_dlp
 
+# TOKEN Railway'dan olinadi
 TOKEN = os.getenv("TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# START komandasi
-@dp.message(commands=["start"])
+# /start komandasi
+@dp.message(CommandStart())
 async def start_handler(message: types.Message):
     await message.answer(
         "👋 Salom!\n\n"
-        "Menga TikTok yoki Instagram havola yuboring 📥\n\n"
-        "Men sizga videoni yuklab beraman 🎥"
+        "📥 Menga TikTok yoki Instagram havola yuboring 🔗\n\n"
+        "🎬 Men sizga videoni yuklab beraman 🚀"
     )
 
-# Link qabul qilish
+# link qabul qilish
 @dp.message()
 async def download_video(message: types.Message):
     url = message.text
@@ -39,12 +41,15 @@ async def download_video(message: types.Message):
 
         await message.answer_video(
             types.FSInputFile("video.mp4"),
-            caption="📥 Mana sizning videongiz!\n\n🔥 Do‘stlaringiz bilan ulashing!\n\n👉 Mening botim: https://t.me/YOUR_BOT_USERNAME"
+            caption="📢 Mana sizning videoingiz!\n\n"
+                    "🔥 Do‘stlaringiz bilan ulashing!\n"
+                    "👉 Mening botim: https://t.me/Reflexmbot"
         )
 
     except Exception as e:
         await message.answer("❌ Xatolik yuz berdi")
 
+# botni ishga tushirish
 async def main():
     await dp.start_polling(bot)
 
