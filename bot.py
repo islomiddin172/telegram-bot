@@ -59,7 +59,7 @@ async def download_video(message: types.Message):
                 caption=(
                     "🎬 Mana sizning video!\n\n"
                     "🔥 Do‘stlaringizga ham yuboring!\n"
-                    "📢 Bizning bot: https://t.me/YOUR_BOT_USERNAME"
+                    "📢 Bizning bot: @Reflexmbot"
                 )
             )
 
@@ -70,7 +70,7 @@ async def download_video(message: types.Message):
                 caption=(
                     "🖼 Mana rasm!\n\n"
                     "🔥 Do‘stlaringizga ham yuboring!\n"
-                    "📢 Bizning bot: https://t.me/Reflexmbot"
+                    "📢 Bizning bot: @Reflexmbot"
                 )
             )
 
