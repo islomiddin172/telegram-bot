@@ -1,16 +1,15 @@
 import asyncio
 import os
-import glob
+import time
 from aiogram import Bot, Dispatcher, types
 import yt_dlp
 
-# 🔥 TOKEN (siz ishlatayotgan usul)
 API_TOKEN = "8685529422:AAGwlcBHVhCWESa__kqn35iAjkV90TM-b9Y"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# START
+# START (ESKI TEXT)
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
     await message.answer(
@@ -20,8 +19,7 @@ async def start_handler(message: types.Message):
         "⚡ Tez | Sifatli | Reklama Yo'q"
     )
 
-# DOWNLOAD
-
+# DOWNLOAD (FIX QILINGAN)
 @dp.message_handler()
 async def download_video(message: types.Message):
     url = message.text
@@ -32,76 +30,59 @@ async def download_video(message: types.Message):
 
     await message.answer("⏳ Video yuklanmoqda...")
 
-    import os, glob
-
-    # eski fayllarni o‘chiramiz
-    for f in glob.glob("video*"):
-        try:
-            os.remove(f)
-        except:
-            pass
+    # 🔥 HAR SAFAR YANGI PAPKA (MUAMMO 100% HAL)
+    folder = f"temp_{int(time.time())}"
+    os.makedirs(folder, exist_ok=True)
 
     ydl_opts = {
-        'outtmpl': 'video.%(ext)s',
-        'format': 'best'
+        'outtmpl': f'{folder}/video.%(ext)s',
+        'format': 'best',
+        'noplaylist': True
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+            ydl.extract_info(url, download=True)
 
-        # VIDEO
-        if filename.endswith((".mp4", ".webm", ".mkv")):
+        files = os.listdir(folder)
+
+        if not files:
+            await message.answer("❌ Fayl topilmadi")
+            return
+
+        filepath = os.path.join(folder, files[0])
+
+        # 🎬 VIDEO (ESKI TEXT SAQLANDI)
+        if filepath.endswith((".mp4", ".webm", ".mkv")):
             await message.answer_video(
-                types.InputFile(filename),
-                caption="🎬 Mana sizning video!\n\n📢 Botdan foydalaning!"
-            )
-
-        # RASM
-        elif filename.endswith((".jpg", ".jpeg", ".png")):
-            await message.answer_photo(
-                types.InputFile(filename),
-                caption="🖼 Mana rasm!\n\n📢 Botdan foydalaning!"
-            )
-
-        else:
-            await message.answer("❌ Format qo‘llab-quvvatlanmaydi")
-
-    except Exception as e:
-        print(e)
-        await message.answer("❌ Xatolik yuz berdi")
-    }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-
-        # 🎬 VIDEO
-        if filename.endswith((".mp4", ".webm", ".mkv")):
-            await message.answer_video(
-                types.InputFile(filename),
+                types.InputFile(filepath),
                 caption=(
                     "🎬 Mana sizning video!\n\n"
-                    "🔥 Do‘stlaringizga ham yuboring!\n"
-                    "📢 Bizning bot: https://t.me/Reflexmbot"
-                )
-            )
-
-        # 🖼 RASM (TikTok carousel)
-        elif filename.endswith((".jpg", ".jpeg", ".png")):
-            await message.answer_photo(
-                types.InputFile(filename),
-                caption=(
-                    "🖼 Mana rasm!\n\n"
                     "🔥 Do‘stlaringizga ham yuboring!\n"
                     "📢 Bizning bot: https://t.me/YOUR_BOT_USERNAME"
                 )
             )
 
+        # 🖼 RASM (TikTok carousel)
+        elif filepath.endswith((".jpg", ".jpeg", ".png")):
+            await message.answer_photo(
+                types.InputFile(filepath),
+                caption=(
+                    "🖼 Mana rasm!\n\n"
+                    "🔥 Do‘stlaringizga ham yuboring!\n"
+                    "📢 Bizning bot: https://t.me/Reflexmbot"
+                )
+            )
+
         else:
             await message.answer("❌ Format qo‘llab-quvvatlanmaydi")
+
+        # 🔥 tozalash
+        try:
+            os.remove(filepath)
+            os.rmdir(folder)
+        except:
+            pass
 
     except Exception as e:
         print("ERROR:", e)
