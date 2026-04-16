@@ -39,11 +39,11 @@ async def download_video(message: types.Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await message.answer_video(
-            types.FSInputFile("video.mp4"),
+       await message.answer_video(
+    types.FSInputFile("video.mp4"),
             caption="📢 Mana sizning videoingiz!\n\n"
                     "🔥 Do‘stlaringiz bilan ulashing!\n"
-                    "👉 Mening botim: https://t.me/Reflexmbot"
+                    "👉 Bizning botimiz: https://t.me/Reflexmbot"
         )
 
     except Exception as e:
