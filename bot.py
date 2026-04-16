@@ -31,7 +31,7 @@ async def download_video(message: types.Message):
     await message.answer("⏳ Video yuklanmoqda...")
 
     ydl_opts = {
-        'outtmpl': 'video.%(ext)s',
+        'outtmpl': 'video.mp4'
         'format': 'mp4'
     }
 
