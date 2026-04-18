@@ -2,57 +2,56 @@ import asyncio
 import os
 import time
 import yt_dlp
-import requests
+import sqlite3
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# 🔐 TOKEN (Railway environmentdan oladi)
+# 🔥 DATABASE
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY
+)
+""")
+conn.commit()
+
+def add_user(user_id):
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+    conn.commit()
+
+def get_users_count():
+    cursor.execute("SELECT COUNT(*) FROM users")
+    return cursor.fetchone()[0]
+
+# 🔐 TOKEN
 TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-odamlar = set()
-ADMIN_ID = 5147486285  # int bo‘lishi yaxshi
-async def broadcast(text):
-    for user_id in odamlar:
-        try:
-            await bot.send_message(user_id, text)
-        except:
-            pass
+ADMIN_ID = 5147486285
 
-
-@dp.message(Command("odamlar"))
-async def users_count(message: types.Message):
-    await message.answer(f"👥 Foydalanuvchilar soni: {len(odamlar)}")
-
-
-@dp.message(Command("send"))
-async def send_all(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    text = message.text.replace("/send ", "")
-    await broadcast(text)
-
-    await message.answer("✅ Yuborildi")
-
-
-# START
+# 🚀 START
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+    user_id = message.from_user.id
 
-    is_new = message.from_user.id not in odamlar
-    odamlar.add(message.from_user.id)
+    cursor.execute("SELECT 1 FROM users WHERE user_id = ?", (user_id,))
+    is_new = cursor.fetchone() is None
+
+    add_user(user_id)
 
     if is_new:
         await bot.send_message(
             ADMIN_ID,
             f"🆕 Yangi user!\n\n"
-            f"👤 ID: {message.from_user.id}\n"
+            f"👤 ID: {user_id}\n"
             f"📛 Ism: {message.from_user.first_name}\n\n"
-            f"👥 Jami: {len(odamlar)} ta"
+            f"👥 Jami: {get_users_count()} ta"
         )
 
     await message.answer(
@@ -62,72 +61,80 @@ async def start_cmd(message: types.Message):
         "⚡ Tez | Sifatli | Reklama Yo'q"
     )
 
-
+# 👥 USER COUNT
 @dp.message(Command("odamlar"))
 async def users_count(message: types.Message):
-    await message.answer(f"👥 Foydalanuvchilar soni: {len(odamlar)}")
+    await message.answer(f"👥 Foydalanuvchilar soni: {get_users_count()}")
 
+# 🎯 BUTTON
+def get_share_button():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📤 Do‘stlarga ulashing",
+                    url="https://t.me/share/url?url=https://t.me/YOUR_BOT_USERNAME"
+                )
+            ]
+        ]
+    )
 
-# DOWNLOAD
+# 📥 DOWNLOAD
 @dp.message()
 async def download_video(message: types.Message):
     url = message.text or ""
 
-    # ❌ noto‘g‘ri link
     if "tiktok.com" not in url and "instagram.com" not in url:
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    # 🔥 INSTAGRAM API
-    if "instagram.com" in url:
-        msg = await message.answer("⏳ Instagram yuklanmoqda...")
+    # ⏳ loading message
+    msg = await message.answer("⏳ Yuklanmoqda...")
 
-        try:
-            res = requests.get(
-                "https://igram.world/api/ig",
-                params={"url": url}
-            )
+    folder = f"temp_{int(time.time())}"
+    os.makedirs(folder, exist_ok=True)
 
-            # bu API HTML qaytaradi, shuning uchun oddiy emas
-            text = res.text
+    file_path = os.path.join(folder, "video.mp4")
 
-            # oddiy usul (video linkni ajratish)
-            import re
-            video_links = re.findall(r'href="(https://[^"]+\.mp4)"', text)
+    try:
+        ydl_opts = {
+            'outtmpl': file_path,
+            'format': 'best',
+            'quiet': True,
+            'noplaylist': True
+        }
 
-            if video_links:
-                video_url = video_links[0]
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
-                await message.answer_video(video_url)
+        # 🎬 video yuborish + button
+        await message.answer_video(
+            types.FSInputFile(file_path),
+            caption=(
+                "🎬 Mana sizning video!\n\n"
+                "🔥 Do‘stlaringizga ham yuboring!"
+            ),
+            reply_markup=get_share_button()
+        )
 
-            else:
-                await message.answer("❌ Video topilmadi")
+        # 🧹 loading o‘chadi
+        await bot.delete_message(message.chat.id, msg.message_id)
 
-        except Exception as e:
-            print(e)
-            await message.answer("❌ Instagram xatolik")
+    except Exception as e:
+        print("ERROR:", e)
+        await message.answer("❌ Yuklashda xatolik")
 
-        # loading o‘chadi
-        try:
-            await bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            pass
-
-        return
-
-    # TOZALASH
+    # 🧹 tozalash
     try:
         os.remove(file_path)
         os.rmdir(folder)
     except:
         pass
 
-
-# RUN
+# ▶ RUN
 async def main():
     print("🚀 Bot ishga tushdi")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
