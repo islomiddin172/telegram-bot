@@ -95,9 +95,10 @@ async def download_video(message: types.Message):
         # 🔥 INSTAGRAM API
         if "instagram.com" in url:
             api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
+            API_KEY = os.getenv("API_KEY")
 
             headers = {
-                "X-RapidAPI-Key": "API_KEY",  # 🔴 shu yerga key qo‘ying
+                "X-RapidAPI-Key": API_KEY,  # 🔴 shu yerga key qo‘ying
                 "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
             }
 
