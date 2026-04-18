@@ -6,9 +6,8 @@ import sqlite3
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# 🔥 DATABASE
+# 🔥 DATABASE (ENG MUHIM)
 conn = sqlite3.connect("users.db")
 cursor = conn.cursor()
 
@@ -19,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
+# 🔧 FUNKSIYALAR
 def add_user(user_id):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     conn.commit()
@@ -38,6 +38,7 @@ ADMIN_ID = 5147486285
 # 🚀 START
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+
     user_id = message.from_user.id
 
     cursor.execute("SELECT 1 FROM users WHERE user_id = ?", (user_id,))
@@ -65,71 +66,6 @@ async def start_cmd(message: types.Message):
 @dp.message(Command("odamlar"))
 async def users_count(message: types.Message):
     await message.answer(f"👥 Foydalanuvchilar soni: {get_users_count()}")
-
-# 🎯 BUTTON
-def get_share_button():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📤 Do‘stlarga ulashing",
-                    url="https://t.me/share/url?url=https://t.me/YOUR_BOT_USERNAME"
-                )
-            ]
-        ]
-    )
-
-# 📥 DOWNLOAD
-@dp.message()
-async def download_video(message: types.Message):
-    url = message.text or ""
-
-    if "tiktok.com" not in url and "instagram.com" not in url:
-        await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
-        return
-
-    # ⏳ loading message
-    msg = await message.answer("⏳ Yuklanmoqda...")
-
-    folder = f"temp_{int(time.time())}"
-    os.makedirs(folder, exist_ok=True)
-
-    file_path = os.path.join(folder, "video.mp4")
-
-    try:
-        ydl_opts = {
-            'outtmpl': file_path,
-            'format': 'best',
-            'quiet': True,
-            'noplaylist': True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-
-        # 🎬 video yuborish + button
-        await message.answer_video(
-            types.FSInputFile(file_path),
-            caption=(
-                "🎬 Mana sizning video!\n\n"
-                "🔥 Do‘stlaringizga ham yuboring!"
-            ),
-            reply_markup=get_share_button()
-        )
-
-        # 🧹 loading o‘chadi
-        await bot.delete_message(message.chat.id, msg.message_id)
-
-    except Exception as e:
-        print("ERROR:", e)
-        await message.answer("❌ Yuklashda xatolik")
-
-    # 🧹 tozalash
-    try:
-        os.remove(file_path)
-        os.rmdir(folder)
-    except:
-        pass
 
 # ▶ RUN
 async def main():
