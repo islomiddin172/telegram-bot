@@ -95,28 +95,38 @@ async def download_video(message: types.Message):
         # 🔥 INSTAGRAM API
         if "instagram.com" in url:
             api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
+            
             API_KEY = os.getenv("API_KEY")
+            if API_KEY:
+                API_KEY = API_KEY.strip()  # 🔥 MUHIM
 
             headers = {
-                "X-RapidAPI-Key": API_KEY ,  # 🔴 shu yerga key qo‘ying
+                "X-RapidAPI-Key": API_KEY,
                 "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
             }
 
-            params = {"url": url}
-
-            response = requests.get(api_url, headers=headers, params=params)
+            response = requests.get(api_url, headers=headers, params={"url": url})
             data = response.json()
 
-            print(data)  # debug
+            print("API RESPONSE:", data)
 
             video_url = None
 
-            if "media" in data:
-                video_url = data["media"]
-            elif "url" in data:
-                video_url = data["url"]
-            elif "data" in data:
-                video_url = data["data"][0]["url"]
+            # 🔥 API list qaytarsa
+            if isinstance(data, list):
+                for item in data:
+                    if item.get("type") == "video":
+                        video_url = item.get("url")
+                        break
+
+            # 🔥 dict qaytarsa
+            elif isinstance(data, dict):
+                if "media" in data:
+                    video_url = data["media"]
+                elif "url" in data:
+                    video_url = data["url"]
+                elif "data" in data and isinstance(data["data"], list):
+                    video_url = data["data"][0].get("url")
 
             if video_url:
                 await message.answer_video(
