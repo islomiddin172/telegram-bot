@@ -65,12 +65,13 @@ async def download_video(message: types.Message):
     file_path = os.path.join(folder, "video.mp4")
 
     try:
-        ydl_opts = {
-            'outtmpl': file_path,
-            'format': 'best[ext=mp4]',
-            'quiet': True,
-            'noplaylist': True
-        }
+      ydl_opts = {
+    'outtmpl': file_path,
+    'format': 'bestvideo+bestaudio/best',
+    'merge_output_format': 'mp4',
+    'noplaylist': True,
+    'quiet': True
+}
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
