@@ -95,11 +95,8 @@ async def handler(message: types.Message):
 
     url = message.text or ""
 
-    if "t.me" in url:
-        await message.answer(t["bad"])
-        return
-
-    if not url.startswith("http"):
+    # ❌ noto‘g‘ri link
+    if not url.startswith("http") or "t.me" in url:
         await message.answer(t["bad"])
         return
 
@@ -111,19 +108,19 @@ async def handler(message: types.Message):
         ydl_opts = {
             'outtmpl': file,
 
-            # 🔥 ENG MUHIM (audio + video fix)
+            # 🔥 AUDIO + VIDEO FIX (ENG MUHIM)
             'format': 'bestvideo+bestaudio/best',
 
-            # 🔥 audio birlashtirish
+            # 🔥 MP4 ga majburlash
             'merge_output_format': 'mp4',
 
             'quiet': True,
             'noplaylist': True,
 
-            # 🔥 TikTok / Instagram fix
+            # 🔥 Instagram / TikTok blokdan chiqish
             'cookiefile': 'cookies.txt',
 
-            # 🔥 user-agent fix (block bo‘lmasin)
+            # 🔥 Fake browser (block bo‘lmasin)
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0'
             }
@@ -137,6 +134,7 @@ async def handler(message: types.Message):
             caption=t["ready"]
         )
 
+        # 🔥 TOZALASH
         os.remove(file)
         await bot.delete_message(message.chat.id, msg.message_id)
 
