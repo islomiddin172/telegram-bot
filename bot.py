@@ -97,8 +97,7 @@ async def download_video(message: types.Message):
             api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
             headers = {
-                "X-RapidAPI-Key": "	
-aa8a85e8ebmshf0da017a3d926c4p16a547jsnc9e6236c857a",  # 🔴 shu yerga key qo‘ying
+                "X-RapidAPI-Key": "API_KEY",  # 🔴 shu yerga key qo‘ying
                 "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
             }
 
@@ -116,7 +115,7 @@ aa8a85e8ebmshf0da017a3d926c4p16a547jsnc9e6236c857a",  # 🔴 shu yerga key qo‘
             elif "url" in data:
                 video_url = data["url"]
             elif "data" in data:
-                video_url = data["data"][0]
+                video_url = data["data"][0]["url"]
 
             if video_url:
                 await message.answer_video(
