@@ -81,7 +81,7 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    await message.answer("⏳ Video yuklanmoqda...")
+    await message.answer_sticker("CAACAgIAAxkBAAEF...") 
 
     folder = f"temp_{int(time.time())}"
     os.makedirs(folder, exist_ok=True)
