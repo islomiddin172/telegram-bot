@@ -1,31 +1,27 @@
-
 import asyncio
 import os
 import time
 import yt_dlp
 
-odamlar = set()
-ADMIN_ID = "5147486285"
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.filters import Command
 
-TOKEN = "BOT_TOKEN"
+# 🔐 TOKEN (Railway environmentdan oladi)
+TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+odamlar = set()
+ADMIN_ID = 5147486285  # int bo‘lishi yaxshi
+
 
 # START
-
 @dp.message(Command("start"))
-
 async def start_cmd(message: types.Message):
-    
-    is_new = message.from_user.id not in odamlar  # ✅ avval tekshir
 
-    odamlar.add(message.from_user.id)  # ✅ keyin qo‘sh
+    is_new = message.from_user.id not in odamlar
+    odamlar.add(message.from_user.id)
 
     if is_new:
         await bot.send_message(
@@ -42,11 +38,12 @@ async def start_cmd(message: types.Message):
         "🎬 Men sizga videoni yuklab beraman!\n\n"
         "⚡ Tez | Sifatli | Reklama Yo'q"
     )
-    
-  
+
+
 @dp.message(Command("odamlar"))
 async def users_count(message: types.Message):
     await message.answer(f"👥 Foydalanuvchilar soni: {len(odamlar)}")
+
 
 # DOWNLOAD
 @dp.message()
@@ -57,7 +54,7 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    await message.answer("⏳")
+    await message.answer("⏳ Video yuklanmoqda...")
 
     folder = f"temp_{int(time.time())}"
     os.makedirs(folder, exist_ok=True)
@@ -65,36 +62,28 @@ async def download_video(message: types.Message):
     file_path = os.path.join(folder, "video.mp4")
 
     try:
-      ydl_opts = {
-    'outtmpl': file_path,
-    'format': 'bestvideo+bestaudio/best',
-    'merge_output_format': 'mp4',
-    'noplaylist': True,
-    'quiet': True
-}
+        ydl_opts = {
+            'outtmpl': file_path,
+            'format': 'best',
+            'quiet': True,
+            'noplaylist': True
+        }
 
-    try:
-    ydl_opts = {
-        'outtmpl': file_path,
-        'format': 'best',
-        'quiet': True,
-        'noplaylist': True
-    }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-
-    await message.answer_video(
-        types.FSInputFile(file_path),
-        caption=(
-            "🎬 Mana sizning video!\n\n"
-            "🔥 Do‘stlaringizga ham yuboring!\n"
-            "📢 Bizning bot: @Reflexmbot"
+        await message.answer_video(
+            types.FSInputFile(file_path),
+            caption=(
+                "🎬 Mana sizning video!\n\n"
+                "🔥 Do‘stlaringizga ham yuboring!\n"
+                "📢 Bizning bot: @Reflexmbot"
+            )
         )
-    )
 
-except Exception as e:
-    await message.answer(f"❌ Xatolik: {e}")
+    except Exception as e:
+        print("ERROR:", e)
+        await message.answer("❌ Yuklashda xatolik")
 
     # TOZALASH
     try:
