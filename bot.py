@@ -81,7 +81,11 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    await message.answer("⏳")
+    await bot.send_chat_action(message.chat.id, "upload_video")
+
+# keyin download boshlanadi
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download([url])
 
     folder = f"temp_{int(time.time())}"
     os.makedirs(folder, exist_ok=True)
