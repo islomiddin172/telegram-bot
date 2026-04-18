@@ -7,7 +7,6 @@ import requests
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ================= DB =================
 conn = sqlite3.connect("users.db")
@@ -15,8 +14,7 @@ cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
-    lang TEXT DEFAULT 'uz'
+    user_id INTEGER PRIMARY KEY
 )
 """)
 conn.commit()
@@ -25,119 +23,56 @@ def add_user(user_id):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     conn.commit()
 
-def set_lang(user_id, lang):
-    cursor.execute("UPDATE users SET lang=? WHERE user_id=?", (lang, user_id))
-    conn.commit()
-
-def get_lang(user_id):
-    cursor.execute("SELECT lang FROM users WHERE user_id=?", (user_id,))
-    r = cursor.fetchone()
-    return r[0] if r else "uz"
-
-# ================= TEXT =================
-TEXT = {
-    "uz": {
-        "start": "📥 TikTok / Instagram link yuboring",
-        "wait": "⏳ Kuting...",
-        "bad": "❌ Noto‘g‘ri link",
-        "ready": "🎬 Tayyor!",
-        "lang": "🌐👋 Assalomu alaykum!\nTilni tanlang"
-    },
-    "ru": {
-        "start": "📥 Отправьте ссылку TikTok / Instagram",
-        "wait": "⏳ Подождите...",
-        "bad": "❌ Неверная ссылка",
-        "ready": "🎬 Готово!",
-        "lang": "🌐👋 Здравствуйте!\nВыберите язык"
-    },
-    "en": {
-        "start": "📥 Send TikTok / Instagram link",
-        "wait": "⏳ Please wait...",
-        "bad": "❌ Invalid link",
-        "ready": "🎬 Done!",
-        "lang": "🌐👋 Hello!\nChoose language"
-    }
-}
-
 # ================= BOT =================
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
-
-# ================= BUTTON =================
-def lang_btn():
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🇺🇿 Uzbek", callback_data="uz"),
-        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="ru"),
-        InlineKeyboardButton(text="🇬🇧 English", callback_data="en"),
-    ]])
 
 # ================= START =================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-
-    text = (
-        TEXT["uz"]["lang"] + "\n\n" +
-        TEXT["ru"]["lang"] + "\n\n" +
-        TEXT["en"]["lang"]
-    )
-
-    await message.answer(text, reply_markup=lang_btn())
-
-# ================= LANGUAGE =================
-@dp.callback_query()
-async def callbacks(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-
-    if callback.data in ["uz", "ru", "en"]:
-        set_lang(user_id, callback.data)
-        await callback.message.delete()
-        await callback.message.answer(TEXT[callback.data]["start"])
+    await message.answer("📥 Instagram link yuboring")
 
 # ================= DOWNLOAD =================
 @dp.message()
 async def handler(message: types.Message):
-    user_id = message.from_user.id
-    lang = get_lang(user_id)
-    t = TEXT[lang]
-
     url = message.text or ""
 
-    if not url.startswith("http") or "t.me" in url:
-        await message.answer(t["bad"])
+    if "instagram.com" not in url:
+        await message.answer("❌ Faqat Instagram link yuboring")
         return
 
-    msg = await message.answer(t["wait"])
+    msg = await message.answer("⏳ Yuklanmoqda...")
 
     file = f"video_{int(time.time())}.mp4"
 
     # ================= 1. API =================
     try:
-        if "instagram.com" in url:
-            api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
+        api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
-            headers = {
-                "X-RapidAPI-Key": os.getenv("API_KEY"),
-                "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
-            }
+        headers = {
+            "X-RapidAPI-Key": os.getenv("API_KEY"),
+            "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
+        }
 
-            res = requests.get(api_url, headers=headers, params={"url": url})
-            data = res.json()
+        res = requests.get(api_url, headers=headers, params={"url": url})
+        data = res.json()
 
-            video_url = None
+        video_url = None
 
-            if isinstance(data, list):
-                for item in data:
-                    if item.get("type") == "video":
-                        video_url = item.get("url")
-                        break
-            elif isinstance(data, dict):
-                video_url = data.get("url") or data.get("media")
+        if isinstance(data, list):
+            for item in data:
+                if item.get("type") == "video":
+                    video_url = item.get("url")
+                    break
+        elif isinstance(data, dict):
+            video_url = data.get("url") or data.get("media")
 
-            if video_url:
-                await message.answer_video(video_url, caption=t["ready"])
-                await bot.delete_message(message.chat.id, msg.message_id)
-                return
+        if video_url:
+            await message.answer_video(video_url, caption="🎬 Tayyor (API)")
+            await bot.delete_message(message.chat.id, msg.message_id)
+            return
+
     except Exception as e:
         print("API FAIL:", e)
 
@@ -145,10 +80,8 @@ async def handler(message: types.Message):
     try:
         ydl_opts = {
             'outtmpl': file,
-            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
-            'merge_output_format': 'mp4',
+            'format': 'best',
             'quiet': True,
-            'noplaylist': True,
             'cookiefile': 'cookies.txt',
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0'
@@ -158,25 +91,38 @@ async def handler(message: types.Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await message.answer_video(
-            types.FSInputFile(file),
-            caption=t["ready"]
-        )
+        await message.answer_video(types.FSInputFile(file), caption="🎬 Tayyor (cookies)")
 
         os.remove(file)
-
-        try:
-            await bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            pass
+        await bot.delete_message(message.chat.id, msg.message_id)
+        return
 
     except Exception as e:
-        print("YTDLP FAIL:", e)
-        await message.answer("❌ Yuklab bo‘lmadi")
+        print("COOKIES FAIL:", e)
+
+    # ================= 3. yt-dlp oddiy =================
+    try:
+        ydl_opts = {
+            'outtmpl': file,
+            'format': 'best',
+            'quiet': True
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        await message.answer_video(types.FSInputFile(file), caption="🎬 Tayyor (backup)")
+
+        os.remove(file)
+        await bot.delete_message(message.chat.id, msg.message_id)
+
+    except Exception as e:
+        print("FINAL FAIL:", e)
+        await message.answer("❌ Umuman yuklab bo‘lmadi")
 
 # ================= RUN =================
 async def main():
-    print("🚀 Bot ishladi")
+    print("🚀 Instagram bot ishladi")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
