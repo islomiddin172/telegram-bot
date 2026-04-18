@@ -114,6 +114,40 @@ async def set_language(callback: types.CallbackQuery):
 async def users_count(message: types.Message):
     await message.answer(f"👥 Foydalanuvchilar: {get_users_count()}")
 
+# ================= SAFE URL EXTRACT =================
+def extract_video_url(data):
+    video_url = None
+
+    try:
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    if item.get("type") == "video":
+                        video_url = item.get("url")
+                        break
+
+        elif isinstance(data, dict):
+            if "media" in data:
+                video_url = data["media"]
+
+            elif "url" in data:
+                video_url = data["url"]
+
+            elif "data" in data and isinstance(data["data"], list):
+                video_url = data["data"][0].get("url")
+
+        # 🔥 HARD FIX
+        if isinstance(video_url, list):
+            video_url = video_url[0]
+
+        if isinstance(video_url, dict):
+            video_url = video_url.get("url")
+
+    except:
+        pass
+
+    return video_url if isinstance(video_url, str) else None
+
 # ================= DOWNLOAD =================
 @dp.message()
 async def download_video(message: types.Message):
@@ -137,41 +171,22 @@ async def download_video(message: types.Message):
             try:
                 api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
-                API_KEY = os.getenv("API_KEY")
-                if API_KEY:
-                    API_KEY = API_KEY.strip()
-
                 headers = {
-                    "X-RapidAPI-Key": API_KEY,
+                    "X-RapidAPI-Key": os.getenv("API_KEY").strip(),
                     "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
                 }
 
                 res = requests.get(api_url, headers=headers, params={"url": url}, timeout=15)
                 data = res.json()
 
-                # 🔥 UNIVERSAL PARSER
-                if isinstance(data, list):
-                    for item in data:
-                        if isinstance(item, dict) and item.get("type") == "video":
-                            video_url = item.get("url")
-                            break
+                print("API:", data)
 
-                elif isinstance(data, dict):
-                    if "media" in data:
-                        video_url = data["media"]
-                    elif "url" in data:
-                        video_url = data["url"]
-                    elif "data" in data and isinstance(data["data"], list):
-                        video_url = data["data"][0].get("url")
-
-                # 🔥 STRING FIX
-                if isinstance(video_url, list):
-                    video_url = video_url[0]
+                video_url = extract_video_url(data)
 
             except Exception as e:
                 print("API FAIL:", e)
 
-        # ===== FALLBACK (yt-dlp) =====
+        # ===== FALLBACK =====
         if not video_url:
             folder = f"temp_{int(time.time())}"
             os.makedirs(folder, exist_ok=True)
@@ -191,8 +206,11 @@ async def download_video(message: types.Message):
                 reply_markup=get_share_button()
             )
 
-            os.remove(file_path)
-            os.rmdir(folder)
+            try:
+                os.remove(file_path)
+                os.rmdir(folder)
+            except:
+                pass
 
         else:
             await message.answer_video(
