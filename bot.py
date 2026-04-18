@@ -41,27 +41,19 @@ TEXT = {
         "wait": "⏳ Kuting...",
         "bad": "❌ Noto‘g‘ri link",
         "ready": "🎬 Tayyor!",
-        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
-👋 Здравствуйте! Выберите язык
-👋 Hello! Choose a language"
-    },
+        "lang": "🌐👋 Assalomu alaykum! Tilni tanlang },
     "ru": {
         "start": "📥 Отправьте ссылку TikTok / Instagram",
         "wait": "⏳ Подождите...",
         "bad": "❌ Неверная ссылка",
         "ready": "🎬 Готово!",
-        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
-👋 Здравствуйте! Выберите язык
-👋 Hello! Choose a language"
-    },
+        "lang": "🌐 👋 Здравствуйте! Выберите язык" },
     "en": {
         "start": "📥 Send TikTok / Instagram link",
         "wait": "⏳ Please wait...",
         "bad": "❌ Invalid link",
         "ready": "🎬 Done!",
-        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
-👋 Здравствуйте! Выберите язык
-👋 Hello! Choose a language"
+        "lang": "🌐👋 Hello! Choose a language"
     }
 }
 
