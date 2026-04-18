@@ -154,7 +154,7 @@ async def download_video(message: types.Message):
 
                 await message.answer_video(
                     types.FSInputFile(file_path),
-                    caption="🎬 (Fallback) video tayyor!",
+                    caption="🎬  Mana sizning video!\n\n🔥 Do‘stlaringizga ham yuboring!",
                     reply_markup=get_share_button()
                 )
 
