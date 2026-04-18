@@ -3,7 +3,7 @@ import os
 import time
 import yt_dlp
 import sqlite3
-import requests  # 🔥 API uchun
+import requests
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -109,92 +109,61 @@ async def handler(message: types.Message):
 
     msg = await message.answer(t["wait"])
 
+    file = f"video_{int(time.time())}.mp4"
+
+    # ================= 1. API =================
     try:
-        # ================= 1. INSTAGRAM API =================
         if "instagram.com" in url:
-            try:
-                api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
+            api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
-                API_KEY = os.getenv("API_KEY")
-                if API_KEY:
-                    API_KEY = API_KEY.strip()
-
-                headers = {
-                    "X-RapidAPI-Key": API_KEY,
-                    "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
-                }
-
-                response = requests.get(api_url, headers=headers, params={"url": url})
-                data = response.json()
-
-                video_url = None
-
-                if isinstance(data, list):
-                    for item in data:
-                        if item.get("type") == "video":
-                            video_url = item.get("url")
-                            break
-
-                elif isinstance(data, dict):
-                    if "media" in data:
-                        video_url = data["media"]
-                    elif "url" in data:
-                        video_url = data["url"]
-                    elif "data" in data:
-                        video_url = data["data"][0].get("url")
-
-                if video_url:
-                    await message.answer_video(video_url, caption=t["ready"])
-                    return
-
-            except Exception as e:
-                print("API FAIL:", e)
-
-        # ================= 2. yt-dlp + cookies =================
-        try:
-            file = f"video_{int(time.time())}.mp4"
-
-            ydl_opts = {
-                'outtmpl': file,
-                'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
-                'merge_output_format': 'mp4',
-                'quiet': True,
-                'noplaylist': True,
-                'cookiefile': 'cookies.txt',
-                'http_headers': {
-                    'User-Agent': 'Mozilla/5.0'
-                }
+            headers = {
+                "X-RapidAPI-Key": os.getenv("API_KEY"),
+                "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
             }
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+            res = requests.get(api_url, headers=headers, params={"url": url})
+            data = res.json()
 
-            await message.answer_video(types.FSInputFile(file), caption=t["ready"])
-            os.remove(file)
-            return
+            video_url = None
 
-        except Exception as e:
-            print("COOKIE FAIL:", e)
+            if isinstance(data, list):
+                for item in data:
+                    if item.get("type") == "video":
+                        video_url = item.get("url")
+                        break
+            elif isinstance(data, dict):
+                video_url = data.get("url") or data.get("media")
 
-        # ================= 3. fallback =================
-        try:
-            file = f"video_{int(time.time())}.mp4"
+            if video_url:
+                await message.answer_video(video_url, caption=t["ready"])
+                await bot.delete_message(message.chat.id, msg.message_id)
+                return
+    except Exception as e:
+        print("API FAIL:", e)
 
-            ydl_opts = {
-                'outtmpl': file,
-                'format': 'best',
-                'quiet': True
+    # ================= 2. yt-dlp + cookies =================
+    try:
+        ydl_opts = {
+            'outtmpl': file,
+            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
+            'merge_output_format': 'mp4',
+            'quiet': True,
+            'noplaylist': True,
+            'cookiefile': 'cookies.txt',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0'
             }
+        }
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
-            await message.answer_video(types.FSInputFile(file), caption=t["ready"])
-            os.remove(file)
+        await message.answer_video(
+            types.FSInputFile(file),
+            caption=t["ready"]
+        )
 
-        except Exception as e:
-            print("FINAL FAIL:", e)
-            await message.answer("❌ Yuklab bo‘lmadi")
+        os.remove(file)
 
         try:
             await bot.delete_message(message.chat.id, msg.message_id)
@@ -202,8 +171,8 @@ async def handler(message: types.Message):
             pass
 
     except Exception as e:
-        print("ERROR:", e)
-        await message.answer("❌ Error")
+        print("YTDLP FAIL:", e)
+        await message.answer("❌ Yuklab bo‘lmadi")
 
 # ================= RUN =================
 async def main():
