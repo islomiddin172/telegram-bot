@@ -73,7 +73,7 @@ def get_share_button():
             [
                 InlineKeyboardButton(
                     text="📤 Do‘stlarga ulashing",
-                    url="https://t.me/share/url?url=https://t.me/YOUR_BOT_USERNAME"
+                    url="https://t.me/share/url?url=https://t.me/reflexmbot"
                 )
             ]
         ]
