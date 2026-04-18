@@ -82,6 +82,7 @@ async def start(message: types.Message):
     )
 
     await message.answer(text, reply_markup=lang_btn())
+
 # ================= LANGUAGE =================
 @dp.callback_query()
 async def callbacks(callback: types.CallbackQuery):
@@ -113,13 +114,16 @@ async def handler(message: types.Message):
         ydl_opts = {
             'outtmpl': file,
 
-            # 🔥 FFmpegsiz ishlaydigan format
-            'format': 'best',
+            # 🔥 AUDIO + VIDEO FULL HD FIX
+            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
+
+            # 🔥 agar ffmpeg bo‘lsa audio qo‘shadi
+            'merge_output_format': 'mp4',
 
             'quiet': True,
             'noplaylist': True,
 
-            # 🔥 TikTok / Instagram fix
+            # 🔥 TikTok blok bo‘lmasin
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0'
             }
