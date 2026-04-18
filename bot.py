@@ -41,21 +41,27 @@ TEXT = {
         "wait": "⏳ Kuting...",
         "bad": "❌ Noto‘g‘ri link",
         "ready": "🎬 Tayyor!",
-        "lang": "🌐 Tilni tanlang"
+        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
+👋 Здравствуйте! Выберите язык
+👋 Hello! Choose a language"
     },
     "ru": {
         "start": "📥 Отправьте ссылку TikTok / Instagram",
         "wait": "⏳ Подождите...",
         "bad": "❌ Неверная ссылка",
         "ready": "🎬 Готово!",
-        "lang": "🌐 Выберите язык"
+        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
+👋 Здравствуйте! Выберите язык
+👋 Hello! Choose a language"
     },
     "en": {
         "start": "📥 Send TikTok / Instagram link",
         "wait": "⏳ Please wait...",
         "bad": "❌ Invalid link",
         "ready": "🎬 Done!",
-        "lang": "🌐 Choose language"
+        "lang": "🌐 👋 Assalomu alaykum! Tilni tanlang
+👋 Здравствуйте! Выберите язык
+👋 Hello! Choose a language"
     }
 }
 
@@ -75,9 +81,7 @@ def lang_btn():
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer("👋 Assalomu alaykum! Tilni tanlang
-👋 Здравствуйте! Выберите язык
-👋 Hello! Choose a language" ["uz"]["lang"], reply_markup=lang_btn())
+    await message.answer( ["uz"]["lang"], reply_markup=lang_btn())
 
 # ================= CALLBACK =================
 @dp.callback_query()
