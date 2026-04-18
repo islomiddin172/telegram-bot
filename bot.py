@@ -45,7 +45,7 @@ TEXTS = {
         "loading": "⏳ Yuklanmoqda...",
         "error": "❌ Xatolik yuz berdi",
         "bad": "❌ Link noto‘g‘ri",
-        "ready": "🎬 Tayyor video!",
+        "ready": "🎬 Mana video!",
         "choose": "🌐 Tilni tanlang:"
     },
     "ru": {
@@ -53,7 +53,7 @@ TEXTS = {
         "loading": "⏳ Загружается...",
         "error": "❌ Ошибка",
         "bad": "❌ Неверная ссылка",
-        "ready": "🎬 Видео готово!",
+        "ready": "🎬 Вот видео!",
         "choose": "🌐 Выберите язык:"
     },
     "en": {
@@ -61,7 +61,7 @@ TEXTS = {
         "loading": "⏳ Loading...",
         "error": "❌ Error",
         "bad": "❌ Invalid link",
-        "ready": "🎬 Video ready!",
+        "ready": "🎬 Here is your video!",
         "choose": "🌐 Choose language:"
     }
 }
@@ -73,7 +73,7 @@ dp = Dispatcher()
 
 ADMIN_ID = 5147486285
 
-# ================= LANGUAGE BUTTON =================
+# ================= BUTTONS =================
 def lang_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -85,7 +85,6 @@ def lang_keyboard():
         ]
     )
 
-# ================= SHARE BUTTON =================
 def get_share_button():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -99,18 +98,14 @@ def get_share_button():
 # ================= START =================
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
-    user_id = message.from_user.id
-
-    add_user(user_id)
-
+    add_user(message.from_user.id)
     await message.answer(TEXTS["uz"]["choose"], reply_markup=lang_keyboard())
 
-# ================= SET LANGUAGE =================
+# ================= LANGUAGE =================
 @dp.callback_query(lambda c: c.data.startswith("lang_"))
 async def set_language(callback: types.CallbackQuery):
     lang = callback.data.split("_")[1]
     set_lang(callback.from_user.id, lang)
-
     await callback.message.answer(TEXTS[lang]["start"])
     await callback.answer()
 
@@ -135,7 +130,9 @@ async def download_video(message: types.Message):
     msg = await message.answer(t["loading"])
 
     try:
-        # ================= INSTAGRAM =================
+        video_url = None
+
+        # ===== INSTAGRAM API =====
         if "instagram.com" in url:
             try:
                 api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
@@ -149,14 +146,13 @@ async def download_video(message: types.Message):
                     "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
                 }
 
-                response = requests.get(api_url, headers=headers, params={"url": url})
-                data = response.json()
+                res = requests.get(api_url, headers=headers, params={"url": url}, timeout=15)
+                data = res.json()
 
-                video_url = None
-
+                # 🔥 UNIVERSAL PARSER
                 if isinstance(data, list):
                     for item in data:
-                        if item.get("type") == "video":
+                        if isinstance(item, dict) and item.get("type") == "video":
                             video_url = item.get("url")
                             break
 
@@ -165,44 +161,18 @@ async def download_video(message: types.Message):
                         video_url = data["media"]
                     elif "url" in data:
                         video_url = data["url"]
-                    elif "data" in data:
+                    elif "data" in data and isinstance(data["data"], list):
                         video_url = data["data"][0].get("url")
 
-                if video_url:
-                    await message.answer_video(
-                        video_url,
-                        caption=t["ready"],
-                        reply_markup=get_share_button()
-                    )
-                else:
-                    raise Exception("API video bermadi")
+                # 🔥 STRING FIX
+                if isinstance(video_url, list):
+                    video_url = video_url[0]
 
             except Exception as e:
                 print("API FAIL:", e)
 
-                folder = f"temp_{int(time.time())}"
-                os.makedirs(folder, exist_ok=True)
-
-                file_path = os.path.join(folder, "video.mp4")
-
-                with yt_dlp.YoutubeDL({
-                    'outtmpl': file_path,
-                    'format': 'best',
-                    'quiet': True
-                }) as ydl:
-                    ydl.download([url])
-
-                await message.answer_video(
-                    types.FSInputFile(file_path),
-                    caption=t["ready"],
-                    reply_markup=get_share_button()
-                )
-
-                os.remove(file_path)
-                os.rmdir(folder)
-
-        # ================= TIKTOK =================
-        else:
+        # ===== FALLBACK (yt-dlp) =====
+        if not video_url:
             folder = f"temp_{int(time.time())}"
             os.makedirs(folder, exist_ok=True)
 
@@ -223,6 +193,13 @@ async def download_video(message: types.Message):
 
             os.remove(file_path)
             os.rmdir(folder)
+
+        else:
+            await message.answer_video(
+                video_url,
+                caption=t["ready"],
+                reply_markup=get_share_button()
+            )
 
         await bot.delete_message(message.chat.id, msg.message_id)
 
