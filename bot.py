@@ -4,7 +4,7 @@ import time
 from aiogram import Bot, Dispatcher, types
 import yt_dlp
 
-API_TOKEN = "8685529422:AAGwlcBHVhCWESa__kqn35iAjkV90TM-b9Y"
+API_TOKEN = "KEY: TOKEN"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
