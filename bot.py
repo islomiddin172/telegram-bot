@@ -81,11 +81,7 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    msg = await message.answer("⏳ Yuklanmoqda...")
-
-# download
-
-await bot.delete_message(message.chat.id, msg.message_id)
+   await message.answer("⏳")
 
     folder = f"temp_{int(time.time())}"
     os.makedirs(folder, exist_ok=True)
