@@ -73,21 +73,28 @@ async def download_video(message: types.Message):
     'quiet': True
 }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        try:
+    ydl_opts = {
+        'outtmpl': file_path,
+        'format': 'best',
+        'quiet': True,
+        'noplaylist': True
+    }
 
-        await message.answer_video(
-            types.FSInputFile(file_path),
-            caption=(
-                "🎬 Mana sizning video!\n\n"
-                "🔥 Do‘stlaringizga ham yuboring!\n"
-                "📢 Bizning bot: @Reflexmbot"
-            )
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+    await message.answer_video(
+        types.FSInputFile(file_path),
+        caption=(
+            "🎬 Mana sizning video!\n\n"
+            "🔥 Do‘stlaringizga ham yuboring!\n"
+            "📢 Bizning bot: @Reflexmbot"
         )
+    )
 
-    except Exception as e:
-        print("ERROR:", e)
-        await message.answer("❌ Yuklashda xatolik")
+except Exception as e:
+    await message.answer(f"❌ Xatolik: {e}")
 
     # TOZALASH
     try:
