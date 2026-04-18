@@ -74,8 +74,14 @@ def lang_btn():
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer(TEXT["uz"]["lang"], reply_markup=lang_btn())
 
+    text = (
+        TEXT["uz"]["lang"] + "\n\n" +
+        TEXT["ru"]["lang"] + "\n\n" +
+        TEXT["en"]["lang"]
+    )
+
+    await message.answer(text, reply_markup=lang_btn())
 # ================= LANGUAGE =================
 @dp.callback_query()
 async def callbacks(callback: types.CallbackQuery):
