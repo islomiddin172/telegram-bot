@@ -98,7 +98,7 @@ async def download_video(message: types.Message):
             API_KEY = os.getenv("API_KEY")
 
             headers = {
-                "X-RapidAPI-Key": API_KEY,  # 🔴 shu yerga key qo‘ying
+                "X-RapidAPI-Key": API_KEY ,  # 🔴 shu yerga key qo‘ying
                 "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
             }
 
