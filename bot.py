@@ -6,8 +6,9 @@ import sqlite3
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# 🔥 DATABASE (ENG MUHIM)
+# 🔥 DATABASE
 conn = sqlite3.connect("users.db")
 cursor = conn.cursor()
 
@@ -18,7 +19,6 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# 🔧 FUNKSIYALAR
 def add_user(user_id):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     conn.commit()
@@ -27,22 +27,17 @@ def get_users_count():
     cursor.execute("SELECT COUNT(*) FROM users")
     return cursor.fetchone()[0]
 
-
-
-# 🔐 TOKEN (Railway environmentdan oladi)
+# 🔐 TOKEN
 TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+ADMIN_ID = 5147486285
 
-ADMIN_ID = 5147486285  # int bo‘lishi yaxshi
-
-
-# START
+# 🚀 START
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
-
     user_id = message.from_user.id
 
     cursor.execute("SELECT 1 FROM users WHERE user_id = ?", (user_id,))
@@ -66,13 +61,25 @@ async def start_cmd(message: types.Message):
         "⚡ Tez | Sifatli | Reklama Yo'q"
     )
 
-
+# 👥 USER COUNT
 @dp.message(Command("odamlar"))
 async def users_count(message: types.Message):
-    await message.answer(f"👥 Foydalanuvchilar soni: {len(odamlar)}")
+    await message.answer(f"👥 Foydalanuvchilar soni: {get_users_count()}")
 
+# 🎯 BUTTON
+def get_share_button():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📤 Do‘stlarga ulashing",
+                    url="https://t.me/share/url?url=https://t.me/YOUR_BOT_USERNAME"
+                )
+            ]
+        ]
+    )
 
-# DOWNLOAD
+# 📥 DOWNLOAD
 @dp.message()
 async def download_video(message: types.Message):
     url = message.text or ""
@@ -81,7 +88,8 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-   await message.answer("⏳")
+    # ⏳ loading message
+    msg = await message.answer("⏳ Yuklanmoqda...")
 
     folder = f"temp_{int(time.time())}"
     os.makedirs(folder, exist_ok=True)
@@ -99,32 +107,34 @@ async def download_video(message: types.Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
+        # 🎬 video yuborish + button
         await message.answer_video(
             types.FSInputFile(file_path),
             caption=(
                 "🎬 Mana sizning video!\n\n"
-                "🔥 Do‘stlaringizga ham yuboring!\n"
-                "📢 Bizning bot: @Reflexmbot"
-            )
+                "🔥 Do‘stlaringizga ham yuboring!"
+            ),
+            reply_markup=get_share_button()
         )
+
+        # 🧹 loading o‘chadi
+        await bot.delete_message(message.chat.id, msg.message_id)
 
     except Exception as e:
         print("ERROR:", e)
         await message.answer("❌ Yuklashda xatolik")
 
-    # TOZALASH
+    # 🧹 tozalash
     try:
         os.remove(file_path)
         os.rmdir(folder)
     except:
         pass
 
-
-# RUN
+# ▶ RUN
 async def main():
     print("🚀 Bot ishga tushdi")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
