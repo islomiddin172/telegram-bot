@@ -2,6 +2,7 @@ import asyncio
 import os
 import time
 import yt_dlp
+import requests
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -72,40 +73,47 @@ async def users_count(message: types.Message):
 async def download_video(message: types.Message):
     url = message.text or ""
 
+    # ❌ noto‘g‘ri link
     if "tiktok.com" not in url and "instagram.com" not in url:
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    await message.answer("⏳ Video yuklanmoqda...")
+    # 🔥 INSTAGRAM API
+    if "instagram.com" in url:
+        msg = await message.answer("⏳ Instagram yuklanmoqda...")
 
-    folder = f"temp_{int(time.time())}"
-    os.makedirs(folder, exist_ok=True)
-
-    file_path = os.path.join(folder, "video.mp4")
-
-    try:
-        ydl_opts = {
-            'outtmpl': file_path,
-            'format': 'best',
-            'quiet': True,
-            'noplaylist': True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-
-        await message.answer_video(
-            types.FSInputFile(file_path),
-            caption=(
-                "🎬 Mana sizning video!\n\n"
-                "🔥 Do‘stlaringizga ham yuboring!\n"
-                "📢 Bizning bot: @Reflexmbot"
+        try:
+            res = requests.get(
+                "https://api.vevioz.com/api/button/videos",
+                params={"url": url}
             )
-        )
 
-    except Exception as e:
-        print("ERROR:", e)
-        await message.answer("❌ Yuklashda xatolik")
+            # bu API HTML qaytaradi, shuning uchun oddiy emas
+            text = res.text
+
+            # oddiy usul (video linkni ajratish)
+            import re
+            video_links = re.findall(r'href="(https://[^"]+\.mp4)"', text)
+
+            if video_links:
+                video_url = video_links[0]
+
+                await message.answer_video(video_url)
+
+            else:
+                await message.answer("❌ Video topilmadi")
+
+        except Exception as e:
+            print(e)
+            await message.answer("❌ Instagram xatolik")
+
+        # loading o‘chadi
+        try:
+            await bot.delete_message(message.chat.id, msg.message_id)
+        except:
+            pass
+
+        return
 
     # TOZALASH
     try:
