@@ -9,7 +9,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# ================= DATABASE =================
+# ================= DB =================
 conn = sqlite3.connect("users.db")
 cursor = conn.cursor()
 
@@ -31,34 +31,34 @@ def set_lang(user_id, lang):
 
 def get_lang(user_id):
     cursor.execute("SELECT lang FROM users WHERE user_id=?", (user_id,))
-    res = cursor.fetchone()
-    return res[0] if res else "uz"
+    r = cursor.fetchone()
+    return r[0] if r else "uz"
 
 # ================= TEXT =================
-TEXTS = {
+TEXT = {
     "uz": {
         "start": "📥 TikTok / Instagram / YouTube link yuboring",
-        "loading": "⏳ Iltimos kuting...",
+        "wait": "⏳ Kuting...",
         "bad": "❌ Noto‘g‘ri link",
-        "ready": "🎬 Video tayyor!",
-        "choose": "🌐 Tilni tanlang:",
-        "format": "📺 Formatni tanlang:"
+        "ready": "🎬 Tayyor!",
+        "lang": "🌐 Tilni tanlang",
+        "format": "📺 Format tanlang"
     },
     "ru": {
-        "start": "📥 Отправь ссылку TikTok / Instagram / YouTube",
-        "loading": "⏳ Подождите...",
+        "start": "📥 Отправьте ссылку",
+        "wait": "⏳ Подождите...",
         "bad": "❌ Неверная ссылка",
-        "ready": "🎬 Видео готово!",
-        "choose": "🌐 Выберите язык:",
-        "format": "📺 Выберите формат:"
+        "ready": "🎬 Готово!",
+        "lang": "🌐 Выберите язык",
+        "format": "📺 Выберите формат"
     },
     "en": {
-        "start": "📥 Send TikTok / Instagram / YouTube link",
-        "loading": "⏳ Please wait...",
+        "start": "📥 Send link",
+        "wait": "⏳ Please wait...",
         "bad": "❌ Invalid link",
-        "ready": "🎬 Video ready!",
-        "choose": "🌐 Choose language:",
-        "format": "📺 Choose format:"
+        "ready": "🎬 Done!",
+        "lang": "🌐 Choose language",
+        "format": "📺 Choose format"
     }
 }
 
@@ -66,126 +66,117 @@ TEXTS = {
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 
-# ================= TEMP STORAGE =================
 user_links = {}
 
 # ================= BUTTONS =================
-def lang_keyboard():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[
-            InlineKeyboardButton(text="🇺🇿 Uzbek", callback_data="lang_uz"),
-            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
-            InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en"),
-        ]]
-    )
+def lang_btn():
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🇺🇿", callback_data="uz"),
+        InlineKeyboardButton(text="🇷🇺", callback_data="ru"),
+        InlineKeyboardButton(text="🇬🇧", callback_data="en"),
+    ]])
 
-def format_keyboard():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="360p", callback_data="f_360")],
-            [InlineKeyboardButton(text="720p", callback_data="f_720")],
-            [InlineKeyboardButton(text="1080p", callback_data="f_1080")]
-        ]
-    )
+def format_btn():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="360p", callback_data="360")],
+        [InlineKeyboardButton(text="720p", callback_data="720")],
+        [InlineKeyboardButton(text="1080p", callback_data="1080")]
+    ])
 
 # ================= START =================
 @dp.message(Command("start"))
-async def start_cmd(message: types.Message):
+async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer(TEXTS["uz"]["choose"], reply_markup=lang_keyboard())
+    await message.answer(TEXT["uz"]["lang"], reply_markup=lang_btn())
 
-# ================= LANGUAGE =================
-@dp.callback_query(lambda c: c.data.startswith("lang_"))
-async def set_language(callback: types.CallbackQuery):
-    lang = callback.data.split("_")[1]
-    set_lang(callback.from_user.id, lang)
+# ================= LANG =================
+@dp.callback_query()
+async def callbacks(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
 
-    await callback.message.edit_reply_markup()  # ❗ button yo‘qoladi
-    await callback.message.answer(TEXTS[lang]["start"])
+    # language
+    if callback.data in ["uz","ru","en"]:
+        set_lang(user_id, callback.data)
+        await callback.message.edit_reply_markup()
+        await callback.message.answer(TEXT[callback.data]["start"])
+        return
 
-# ================= DOWNLOAD =================
+    # youtube format
+    if callback.data in ["360","720","1080"]:
+        url = user_links.get(user_id)
+        lang = get_lang(user_id)
+        t = TEXT[lang]
+
+        await callback.message.edit_reply_markup()
+        msg = await callback.message.answer(t["wait"])
+
+        try:
+            file = f"yt_{time.time()}.mp4"
+
+            ydl_opts = {
+                'outtmpl': file,
+                'format': f'best[height<={callback.data}]',
+                'quiet': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            await callback.message.answer_video(types.FSInputFile(file), caption=t["ready"])
+
+            os.remove(file)
+            await bot.delete_message(callback.message.chat.id, msg.message_id)
+
+        except Exception as e:
+            print(e)
+            await callback.message.answer("❌ Error")
+
+# ================= MAIN =================
 @dp.message()
-async def get_link(message: types.Message):
+async def handler(message: types.Message):
     user_id = message.from_user.id
     lang = get_lang(user_id)
-    t = TEXTS[lang]
+    t = TEXT[lang]
 
     url = message.text or ""
 
-    if "youtube.com" in url or "youtu.be" in url:
-        user_links[user_id] = url
-        await message.answer(t["format"], reply_markup=format_keyboard())
-        return
-
-    if not any(x in url for x in ["tiktok.com", "instagram.com"]):
+    if not url.startswith("http"):
         await message.answer(t["bad"])
         return
 
-    msg = await message.answer(t["loading"])
+    # youtube
+    if "youtube" in url or "youtu.be" in url:
+        user_links[user_id] = url
+        await message.answer(t["format"], reply_markup=format_btn())
+        return
+
+    msg = await message.answer(t["wait"])
 
     try:
-        file_path = f"video_{int(time.time())}.mp4"
-
-        with yt_dlp.YoutubeDL({
-            'outtmpl': file_path,
-            'format': 'best',
-            'quiet': True
-        }) as ydl:
-            ydl.download([url])
-
-        await message.answer_video(
-            types.FSInputFile(file_path),
-            caption=t["ready"]
-        )
-
-        os.remove(file_path)
-
-        await bot.delete_message(message.chat.id, msg.message_id)
-
-    except:
-        await message.answer("❌ Error")
-
-# ================= FORMAT SELECT =================
-@dp.callback_query(lambda c: c.data.startswith("f_"))
-async def download_youtube(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    url = user_links.get(user_id)
-
-    lang = get_lang(user_id)
-    t = TEXTS[lang]
-
-    quality = callback.data.split("_")[1]
-
-    await callback.message.edit_reply_markup()
-
-    msg = await callback.message.answer(t["loading"])
-
-    try:
-        file_path = f"yt_{quality}_{int(time.time())}.mp4"
+        file = f"vid_{time.time()}.mp4"
 
         ydl_opts = {
-            'outtmpl': file_path,
-            'format': f'bestvideo[height<={quality}]+bestaudio/best',
-            'quiet': True
+            'outtmpl': file,
+            'format': 'best',
+            'quiet': True,
+            'cookiefile': 'cookies.txt'  # 🔥 instagram fix
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await callback.message.answer_video(
-            types.FSInputFile(file_path),
-            caption=t["ready"]
-        )
+        await message.answer_video(types.FSInputFile(file), caption=t["ready"])
 
-        os.remove(file_path)
-        await bot.delete_message(callback.message.chat.id, msg.message_id)
+        os.remove(file)
+        await bot.delete_message(message.chat.id, msg.message_id)
 
-    except:
-        await callback.message.answer("❌ Error")
+    except Exception as e:
+        print(e)
+        await message.answer("❌ Error")
 
 # ================= RUN =================
 async def main():
-    print("🚀 Bot ishga tushdi")
+    print("🚀 Bot ishladi")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
