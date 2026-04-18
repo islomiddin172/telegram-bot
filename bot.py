@@ -3,7 +3,7 @@ import asyncio
 import os
 import time
 import yt_dlp
-proxy="socks5://127.0.0.1:1080"
+
 odamlar = set()
 ADMIN_ID = "5147486285"
 
