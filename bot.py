@@ -9,7 +9,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# DATABASE
+# ================= DATABASE =================
 conn = sqlite3.connect("users.db")
 cursor = conn.cursor()
 
@@ -38,14 +38,14 @@ def get_users_count():
     cursor.execute("SELECT COUNT(*) FROM users")
     return cursor.fetchone()[0]
 
-# TEXTS
+# ================= TEXTS =================
 TEXTS = {
     "uz": {
         "start": "👋 Assalomu alaykum!\n\n📥 TikTok yoki Instagram link yuboring",
         "loading": "⏳ Yuklanmoqda...",
         "error": "❌ Xatolik yuz berdi",
-        "bad": "❌ Noto‘g‘ri link",
-        "ready": "🎬 Mana video!",
+        "bad": "❌ Link noto‘g‘ri",
+        "ready": "🎬 Tayyor video!",
         "choose": "🌐 Tilni tanlang:"
     },
     "ru": {
@@ -53,7 +53,7 @@ TEXTS = {
         "loading": "⏳ Загружается...",
         "error": "❌ Ошибка",
         "bad": "❌ Неверная ссылка",
-        "ready": "🎬 Вот видео!",
+        "ready": "🎬 Видео готово!",
         "choose": "🌐 Выберите язык:"
     },
     "en": {
@@ -61,19 +61,19 @@ TEXTS = {
         "loading": "⏳ Loading...",
         "error": "❌ Error",
         "bad": "❌ Invalid link",
-        "ready": "🎬 Here is your video!",
+        "ready": "🎬 Video ready!",
         "choose": "🌐 Choose language:"
     }
 }
 
-# TOKEN
+# ================= BOT =================
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 ADMIN_ID = 5147486285
 
-# LANGUAGE BUTTON
+# ================= LANGUAGE BUTTON =================
 def lang_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -85,32 +85,41 @@ def lang_keyboard():
         ]
     )
 
-# START
-@dp.message(Command("start"))
-async def start_cmd(message: types.Message):
-    add_user(message.from_user.id)
-    await message.answer(TEXTS["uz"]["choose"], reply_markup=lang_keyboard())
-
-# LANGUAGE SELECT
-@dp.callback_query(lambda c: c.data.startswith("lang_"))
-async def set_language(callback: types.CallbackQuery):
-    lang = callback.data.split("_")[1]
-    set_lang(callback.from_user.id, lang)
-    await callback.message.answer(TEXTS[lang]["start"])
-    await callback.answer()
-
-# SHARE BUTTON
+# ================= SHARE BUTTON =================
 def get_share_button():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="📤 Share",
+                text="📤 Do‘stlarga ulashish",
                 url="https://t.me/reflexmbot"
             )]
         ]
     )
 
-# DOWNLOAD
+# ================= START =================
+@dp.message(Command("start"))
+async def start_cmd(message: types.Message):
+    user_id = message.from_user.id
+
+    add_user(user_id)
+
+    await message.answer(TEXTS["uz"]["choose"], reply_markup=lang_keyboard())
+
+# ================= SET LANGUAGE =================
+@dp.callback_query(lambda c: c.data.startswith("lang_"))
+async def set_language(callback: types.CallbackQuery):
+    lang = callback.data.split("_")[1]
+    set_lang(callback.from_user.id, lang)
+
+    await callback.message.answer(TEXTS[lang]["start"])
+    await callback.answer()
+
+# ================= USERS =================
+@dp.message(Command("odamlar"))
+async def users_count(message: types.Message):
+    await message.answer(f"👥 Foydalanuvchilar: {get_users_count()}")
+
+# ================= DOWNLOAD =================
 @dp.message()
 async def download_video(message: types.Message):
     user_id = message.from_user.id
@@ -126,42 +135,73 @@ async def download_video(message: types.Message):
     msg = await message.answer(t["loading"])
 
     try:
-        # INSTAGRAM
+        # ================= INSTAGRAM =================
         if "instagram.com" in url:
-            api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
+            try:
+                api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
-            API_KEY = os.getenv("API_KEY")
-            if API_KEY:
-                API_KEY = API_KEY.strip()
+                API_KEY = os.getenv("API_KEY")
+                if API_KEY:
+                    API_KEY = API_KEY.strip()
 
-            headers = {
-                "X-RapidAPI-Key": API_KEY,
-                "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
-            }
+                headers = {
+                    "X-RapidAPI-Key": API_KEY,
+                    "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
+                }
 
-            response = requests.get(api_url, headers=headers, params={"url": url})
-            data = response.json()
+                response = requests.get(api_url, headers=headers, params={"url": url})
+                data = response.json()
 
-            video_url = None
+                video_url = None
 
-            if isinstance(data, list):
-                for item in data:
-                    if item.get("type") == "video":
-                        video_url = item.get("url")
-                        break
+                if isinstance(data, list):
+                    for item in data:
+                        if item.get("type") == "video":
+                            video_url = item.get("url")
+                            break
 
-            elif isinstance(data, dict):
-                if "media" in data:
-                    video_url = data["media"]
-                elif "url" in data:
-                    video_url = data["url"]
+                elif isinstance(data, dict):
+                    if "media" in data:
+                        video_url = data["media"]
+                    elif "url" in data:
+                        video_url = data["url"]
+                    elif "data" in data:
+                        video_url = data["data"][0].get("url")
 
-            if video_url:
-                await message.answer_video(video_url, caption=t["ready"], reply_markup=get_share_button())
-            else:
-                raise Exception("no video")
+                if video_url:
+                    await message.answer_video(
+                        video_url,
+                        caption=t["ready"],
+                        reply_markup=get_share_button()
+                    )
+                else:
+                    raise Exception("API video bermadi")
 
-        # TIKTOK
+            except Exception as e:
+                print("API FAIL:", e)
+
+                folder = f"temp_{int(time.time())}"
+                os.makedirs(folder, exist_ok=True)
+
+                file_path = os.path.join(folder, "video.mp4")
+
+                with yt_dlp.YoutubeDL({
+                    'outtmpl': file_path,
+                    'format': 'best',
+                    'quiet': True
+                }) as ydl:
+                    ydl.download([url])
+
+                await message.answer_video(
+                    types.FSInputFile(file_path),
+                    caption=t["ready"],
+                    reply_markup=get_share_button()
+                )
+
+                os.remove(file_path)
+                os.rmdir(folder)
+
+        # ================= TIKTOK =================
         else:
             folder = f"temp_{int(time.time())}"
             os.makedirs(folder, exist_ok=True)
@@ -190,7 +230,7 @@ async def download_video(message: types.Message):
         print("ERROR:", e)
         await message.answer(t["error"])
 
-# RUN
+# ================= RUN =================
 async def main():
     print("🚀 Bot ishga tushdi")
     await dp.start_polling(bot)
