@@ -84,7 +84,7 @@ async def download_video(message: types.Message):
 
         try:
             res = requests.get(
-                "https://api.vevioz.com/api/button/videos",
+                "https://igram.world/api/ig",
                 params={"url": url}
             )
 
