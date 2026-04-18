@@ -2,4 +2,3 @@ aiogram>=3.4,<4.0
 yt-dlp
 requests
 yt-dlp
-pip install yt-dlp
