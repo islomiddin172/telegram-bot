@@ -71,9 +71,9 @@ user_links = {}
 # ================= BUTTONS =================
 def lang_btn():
     return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🇺🇿", callback_data="uz"),
-        InlineKeyboardButton(text="🇷🇺", callback_data="ru"),
-        InlineKeyboardButton(text="🇬🇧", callback_data="en"),
+        InlineKeyboardButton(text="🇺🇿 Uzbek", callback_data="uz"),
+        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="ru"),
+        InlineKeyboardButton(text="🇬🇧 English", callback_data="en"),
     ]])
 
 def format_btn():
@@ -89,25 +89,25 @@ async def start(message: types.Message):
     add_user(message.from_user.id)
     await message.answer(TEXT["uz"]["lang"], reply_markup=lang_btn())
 
-# ================= LANG =================
+# ================= CALLBACK =================
 @dp.callback_query()
 async def callbacks(callback: types.CallbackQuery):
     user_id = callback.from_user.id
 
-    # language
+    # 🌐 language
     if callback.data in ["uz","ru","en"]:
         set_lang(user_id, callback.data)
-        await callback.message.edit_reply_markup()
+        await callback.message.delete()  # tugma yo‘qoladi
         await callback.message.answer(TEXT[callback.data]["start"])
         return
 
-    # youtube format
+    # 🎬 youtube format
     if callback.data in ["360","720","1080"]:
         url = user_links.get(user_id)
         lang = get_lang(user_id)
         t = TEXT[lang]
 
-        await callback.message.edit_reply_markup()
+        await callback.message.delete()
         msg = await callback.message.answer(t["wait"])
 
         try:
@@ -115,14 +115,19 @@ async def callbacks(callback: types.CallbackQuery):
 
             ydl_opts = {
                 'outtmpl': file,
-                'format': f'best[height<={callback.data}]',
-                'quiet': True
+                'format': f'bestvideo[height<={callback.data}]+bestaudio/best',
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'cookiefile': 'cookies.txt'  # 🔥 youtube fix
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 
-            await callback.message.answer_video(types.FSInputFile(file), caption=t["ready"])
+            await callback.message.answer_video(
+                types.FSInputFile(file),
+                caption=t["ready"]
+            )
 
             os.remove(file)
             await bot.delete_message(callback.message.chat.id, msg.message_id)
@@ -144,7 +149,7 @@ async def handler(message: types.Message):
         await message.answer(t["bad"])
         return
 
-    # youtube
+    # 🎬 youtube
     if "youtube" in url or "youtu.be" in url:
         user_links[user_id] = url
         await message.answer(t["format"], reply_markup=format_btn())
@@ -159,7 +164,7 @@ async def handler(message: types.Message):
             'outtmpl': file,
             'format': 'best',
             'quiet': True,
-            'cookiefile': 'cookies.txt'  # 🔥 instagram fix
+            'cookiefile': 'cookies.txt'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
