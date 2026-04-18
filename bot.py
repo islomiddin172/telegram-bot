@@ -3,6 +3,7 @@ import os
 import time
 import yt_dlp
 import sqlite3
+import requests
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -88,48 +89,78 @@ async def download_video(message: types.Message):
         await message.answer("❌ Faqat TikTok yoki Instagram link yuboring!")
         return
 
-    # ⏳ loading message
     msg = await message.answer("⏳ Yuklanmoqda...")
 
-    folder = f"temp_{int(time.time())}"
-    os.makedirs(folder, exist_ok=True)
-
-    file_path = os.path.join(folder, "video.mp4")
-
     try:
-        ydl_opts = {
-            'outtmpl': file_path,
-            'format': 'best',
-            'quiet': True,
-            'noplaylist': True
-        }
+        # 🔥 INSTAGRAM API
+        if "instagram.com" in url:
+            api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            headers = {
+                "X-RapidAPI-Key": "	
+aa8a85e8ebmshf0da017a3d926c4p16a547jsnc9e6236c857a",  # 🔴 shu yerga key qo‘ying
+                "X-RapidAPI-Host": "instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com"
+            }
 
-        # 🎬 video yuborish + button
-        await message.answer_video(
-            types.FSInputFile(file_path),
-            caption=(
-                "🎬 Mana sizning video!\n\n"
-                "🔥 Do‘stlaringizga ham yuboring!"
-            ),
-            reply_markup=get_share_button()
-        )
+            params = {"url": url}
 
-        # 🧹 loading o‘chadi
+            response = requests.get(api_url, headers=headers, params=params)
+            data = response.json()
+
+            print(data)  # debug
+
+            video_url = None
+
+            if "media" in data:
+                video_url = data["media"]
+            elif "url" in data:
+                video_url = data["url"]
+            elif "data" in data:
+                video_url = data["data"][0]
+
+            if video_url:
+                await message.answer_video(
+                    video_url,
+                    caption="🎬 Mana sizning video!\n\n🔥 Do‘stlaringizga ham yuboring!",
+                    reply_markup=get_share_button()
+                )
+            else:
+                await message.answer("❌ Video topilmadi")
+
+        # 🔥 TIKTOK (yt-dlp)
+        else:
+            folder = f"temp_{int(time.time())}"
+            os.makedirs(folder, exist_ok=True)
+
+            file_path = os.path.join(folder, "video.mp4")
+
+            ydl_opts = {
+                'outtmpl': file_path,
+                'format': 'best',
+                'quiet': True,
+                'noplaylist': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            await message.answer_video(
+                types.FSInputFile(file_path),
+                caption="🎬 Mana sizning video!\n\n🔥 Do‘stlaringizga ham yuboring!",
+                reply_markup=get_share_button()
+            )
+
+            try:
+                os.remove(file_path)
+                os.rmdir(folder)
+            except:
+                pass
+
         await bot.delete_message(message.chat.id, msg.message_id)
 
     except Exception as e:
         print("ERROR:", e)
         await message.answer("❌ Yuklashda xatolik")
-
-    # 🧹 tozalash
-    try:
-        os.remove(file_path)
-        os.rmdir(folder)
-    except:
-        pass
 
 # ▶ RUN
 async def main():
