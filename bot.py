@@ -73,7 +73,7 @@ async def download_video(message: types.Message):
     'quiet': True
 }
 
-        try:
+    try:
     ydl_opts = {
         'outtmpl': file_path,
         'format': 'best',
