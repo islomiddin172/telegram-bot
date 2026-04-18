@@ -14,6 +14,28 @@ dp = Dispatcher()
 
 odamlar = set()
 ADMIN_ID = 5147486285  # int bo‘lishi yaxshi
+async def broadcast(text):
+    for user_id in odamlar:
+        try:
+            await bot.send_message(user_id, text)
+        except:
+            pass
+
+
+@dp.message(Command("odamlar"))
+async def users_count(message: types.Message):
+    await message.answer(f"👥 Foydalanuvchilar soni: {len(odamlar)}")
+
+
+@dp.message(Command("send"))
+async def send_all(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    text = message.text.replace("/send ", "")
+    await broadcast(text)
+
+    await message.answer("✅ Yuborildi")
 
 
 # START
