@@ -75,7 +75,9 @@ def lang_btn():
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer(TEXT["uz"]["lang"], reply_markup=lang_btn())
+    await message.answer("👋 Assalomu alaykum! Tilni tanlang
+👋 Здравствуйте! Выберите язык
+👋 Hello! Choose a language" ["uz"]["lang"], reply_markup=lang_btn())
 
 # ================= CALLBACK =================
 @dp.callback_query()
