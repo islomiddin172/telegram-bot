@@ -44,6 +44,7 @@ async def start(message: types.Message):
     await message.answer("📥 Instagram Yoki TikTok link yuboring")
 
 # ================= AUDIO CALLBACK =================
+# ================= AUDIO CALLBACK =================
 @dp.callback_query()
 async def callbacks(callback: types.CallbackQuery):
     if callback.data == "music":
@@ -64,6 +65,14 @@ async def callbacks(callback: types.CallbackQuery):
                 'outtmpl': file,
                 'quiet': True,
                 'noplaylist': True,
+
+                # 🔥 ENG MUHIM FIX
+                'cookiefile': 'cookies.txt',
+
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0'
+                },
+
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
