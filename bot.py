@@ -41,8 +41,7 @@ def music_btn():
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer(" Assalomu Alaykum
-    📥 Instagram Yoki TikTok link yuboring")
+    await message.answer("📥 Instagram Yoki TikTok link yuboring")
 
 # ================= AUDIO CALLBACK =================
 @dp.callback_query()
