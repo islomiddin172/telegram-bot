@@ -7,6 +7,7 @@ import requests
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ================= DB =================
 conn = sqlite3.connect("users.db")
@@ -27,26 +28,72 @@ def add_user(user_id):
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 
+# ================= BUTTON =================
+def music_btn():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎵 Musiqani olish", callback_data="music")]
+    ])
+
 # ================= START =================
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer("📥 Instagram link yuboring")
+    await message.answer("📥 Instagram yoki TikTok link yuboring")
+
+# ================= CALLBACK =================
+@dp.callback_query()
+async def callbacks(callback: types.CallbackQuery):
+    if callback.data == "music":
+        await callback.answer("🎵 Musiqa funksiyasi keyingi versiyada qo‘shiladi")
 
 # ================= DOWNLOAD =================
 @dp.message()
 async def handler(message: types.Message):
     url = message.text or ""
 
-    if "instagram.com" not in url:
-        await message.answer("❌ Faqat Instagram link yuboring")
+    if not ("instagram.com" in url or "tiktok.com" in url):
+        await message.answer("❌ Faqat Instagram yoki TikTok link yuboring")
         return
 
     msg = await message.answer("⏳ Yuklanmoqda...")
 
     file = f"video_{int(time.time())}.mp4"
 
-    # ================= 1. API =================
+    # ================= TIKTOK =================
+    if "tiktok.com" in url:
+        try:
+            ydl_opts = {
+                'outtmpl': file,
+                'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'noplaylist': True,
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0'
+                }
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            await message.answer_video(
+                types.FSInputFile(file),
+                caption="🎬 TikTok tayyor!",
+                reply_markup=music_btn()
+            )
+
+            os.remove(file)
+            await bot.delete_message(message.chat.id, msg.message_id)
+            return
+
+        except Exception as e:
+            print("TIKTOK FAIL:", e)
+            await message.answer("❌ TikTok yuklanmadi")
+            return
+
+    # ================= INSTAGRAM =================
+
+    # -------- 1. API --------
     try:
         api_url = "https://instagram-downloader-download-instagram-stories-videos4.p.rapidapi.com/convert"
 
@@ -69,14 +116,18 @@ async def handler(message: types.Message):
             video_url = data.get("url") or data.get("media")
 
         if video_url:
-            await message.answer_video(video_url, caption="🎬 Tayyor (API)")
+            await message.answer_video(
+                video_url,
+                caption="🎬 Tayyor (API)",
+                reply_markup=music_btn()
+            )
             await bot.delete_message(message.chat.id, msg.message_id)
             return
 
     except Exception as e:
         print("API FAIL:", e)
 
-    # ================= 2. yt-dlp + cookies =================
+    # -------- 2. cookies --------
     try:
         ydl_opts = {
             'outtmpl': file,
@@ -91,7 +142,11 @@ async def handler(message: types.Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await message.answer_video(types.FSInputFile(file), caption="🎬 Tayyor (cookies)")
+        await message.answer_video(
+            types.FSInputFile(file),
+            caption="🎬 Tayyor (cookies)",
+            reply_markup=music_btn()
+        )
 
         os.remove(file)
         await bot.delete_message(message.chat.id, msg.message_id)
@@ -100,7 +155,7 @@ async def handler(message: types.Message):
     except Exception as e:
         print("COOKIES FAIL:", e)
 
-    # ================= 3. yt-dlp oddiy =================
+    # -------- 3. backup --------
     try:
         ydl_opts = {
             'outtmpl': file,
@@ -111,7 +166,11 @@ async def handler(message: types.Message):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        await message.answer_video(types.FSInputFile(file), caption="🎬 Tayyor (backup)")
+        await message.answer_video(
+            types.FSInputFile(file),
+            caption="🎬 Tayyor (backup)",
+            reply_markup=music_btn()
+        )
 
         os.remove(file)
         await bot.delete_message(message.chat.id, msg.message_id)
@@ -122,7 +181,7 @@ async def handler(message: types.Message):
 
 # ================= RUN =================
 async def main():
-    print("🚀 Instagram bot ishladi")
+    print("🚀 Bot ishladi")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
